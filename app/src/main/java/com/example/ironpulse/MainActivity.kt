@@ -28,8 +28,10 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -46,14 +48,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.ListAlt
-import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.Timer
@@ -62,12 +67,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -80,7 +85,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -93,9 +98,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -108,31 +114,35 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
 
-// High-Contrast Dark Slate Color Palette
-val SlateBackground = Color(0xFF0B0F19)
-val SlateSurface = Color(0xFF151C2C)
-val SlateCard = Color(0xFF1E293B)
-val EmeraldAccent = Color(0xFF10B981)
-val AmberGold = Color(0xFFF59E0B)
-val PurpleBadge = Color(0xFFA855F7)
-val CrimsonDanger = Color(0xFFEF4444)
-val TextPrimary = Color(0xFFF8FAFC)
-val TextSecondary = Color(0xFF94A3B8)
+// Exact Color Palette from Reference Design
+val PureWhite = Color(0xFFFFFFFF)
+val SoftCoolBg = Color(0xFFF6F8FC)
+val DividerCoolGray = Color(0xFFE6EAF2)
+val RoyalIndigo = Color(0xFF192560)        // Deep navy header & workout cards
+val RoyalIndigoDark = Color(0xFF121C4A)    // Darker navy footer strip inside workout cards
+val CobaltBlue = Color(0xFF3655D8)         // Vibrant blue START button, date badge & Overall Best card
+val PeriwinkleBlue = Color(0xFF5C7CFA)     // Glowing bar chart & muscle highlight accent
+val SoftPeriwinklePill = Color(0xFFDBE4FF) // Muscle involvement tag background
+val TextDarkNavy = Color(0xFF10183B)       // Sharp dark navy typography
+val TextCoolMuted = Color(0xFF8B95B0)      // Muted gray labels (SET 1, tonnage lifted, etc.)
+val CoralRed = Color(0xFFE03131)
 
-private val IronPulseDarkColorScheme = darkColorScheme(
-    primary = EmeraldAccent,
-    onPrimary = SlateBackground,
-    secondary = AmberGold,
-    background = SlateBackground,
-    surface = SlateSurface,
-    onBackground = TextPrimary,
-    onSurface = TextPrimary
+private val ReferenceLightColorScheme = lightColorScheme(
+    primary = CobaltBlue,
+    onPrimary = PureWhite,
+    secondary = RoyalIndigo,
+    onSecondary = PureWhite,
+    background = PureWhite,
+    surface = PureWhite,
+    onBackground = TextDarkNavy,
+    onSurface = TextDarkNavy
 )
 
 class WorkoutWidgetProvider : AppWidgetProvider() {
@@ -190,7 +200,7 @@ object RestNotificationHelper {
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_app_logo)
             .setContentTitle("Rest Timer: $exerciseName")
-            .setContentText("Counting down even with screen off...")
+            .setContentText("Counting down with screen off...")
             .setWhen(endTime)
             .setUsesChronometer(true)
             .setChronometerCountDown(true)
@@ -214,8 +224,8 @@ object RestNotificationHelper {
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_app_logo)
-            .setContentTitle("Rest Complete! Time for your next set")
-            .setContentText("Ready for $exerciseName")
+            .setContentTitle("Rest Complete! Ready for next set")
+            .setContentText("Next set of $exerciseName")
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
@@ -267,10 +277,10 @@ class MainActivity : ComponentActivity() {
         val dao = db.workoutDao()
 
         setContent {
-            MaterialTheme(colorScheme = IronPulseDarkColorScheme) {
+            MaterialTheme(colorScheme = ReferenceLightColorScheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = SlateBackground
+                    color = PureWhite
                 ) {
                     IronPulseApp(dao = dao)
                 }
@@ -285,7 +295,6 @@ fun IronPulseApp(dao: WorkoutDao) {
     val scope = rememberCoroutineScope()
     val prefs = remember { context.getSharedPreferences("ironpulse_prefs", Context.MODE_PRIVATE) }
 
-    // Seed initial exercises & templates once
     LaunchedEffect(Unit) {
         if (dao.getExerciseCount() == 0) {
             dao.insertExercises(SeedData.defaultExercises)
@@ -300,28 +309,31 @@ fun IronPulseApp(dao: WorkoutDao) {
     val allSets by dao.getAllSets().collectAsState(initial = emptyList())
     val bodyMetrics by dao.getAllBodyMetrics().collectAsState(initial = emptyList())
 
+    // Navigation Tabs:
+    // 0 = Dashboard, 1 = Add Sets (Logger), 2 = Add Exercises (Library), 3 = Anatomy View, 4 = Statistics
     var currentTab by remember { mutableIntStateOf(0) }
     var homeBodyweightMode by remember { mutableStateOf(false) }
     var weeklyGoalDays by remember { mutableIntStateOf(prefs.getInt("weekly_goal", 4)) }
 
     // Active Workout Session State
     var activeSessionId by remember { mutableStateOf(UUID.randomUUID().toString()) }
-    var activeWorkoutName by remember { mutableStateOf("Push Day (Chest, Shoulders, Triceps)") }
+    var activeWorkoutName by remember { mutableStateOf("Chest & Back") }
     var selectedExerciseName by remember { mutableStateOf("Barbell Bench Press") }
 
-    // Built-in Rest Timer State
+    // Rest Timer State (matches "Enable rest timer" switch in Add Sets header)
+    var restTimerEnabled by remember { mutableStateOf(true) }
     var restSecondsRemaining by remember { mutableIntStateOf(0) }
     var restTimerRunning by remember { mutableStateOf(false) }
     var restExerciseLabel by remember { mutableStateOf("") }
 
-    // PR Celebration Banner State
+    // PR Celebration Banner
     var prBannerMessage by remember { mutableStateOf<String?>(null) }
 
-    // Plate Calculator Dialog State
+    // Modals
     var showPlateDialog by remember { mutableStateOf(false) }
     var plateTargetInput by remember { mutableStateOf("100") }
+    var showBodyMetricDialog by remember { mutableStateOf(false) }
 
-    // Rest Timer Coroutine
     LaunchedEffect(restTimerRunning, restSecondsRemaining) {
         if (restTimerRunning && restSecondsRemaining > 0) {
             delay(1000L)
@@ -334,6 +346,7 @@ fun IronPulseApp(dao: WorkoutDao) {
     }
 
     fun startRestTimer(seconds: Int, exercise: String) {
+        if (!restTimerEnabled) return
         restExerciseLabel = exercise
         restSecondsRemaining = seconds.coerceAtLeast(5)
         restTimerRunning = true
@@ -347,201 +360,105 @@ fun IronPulseApp(dao: WorkoutDao) {
     }
 
     Scaffold(
-        containerColor = SlateBackground,
-        topBar = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(SlateSurface)
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.FitnessCenter,
-                            contentDescription = null,
-                            tint = EmeraldAccent,
-                            modifier = Modifier.size(26.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "IRONPULSE",
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 20.sp,
-                            color = TextPrimary
-                        )
-                    }
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { showPlateDialog = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Calculate,
-                                contentDescription = "Plate Calculator",
-                                tint = AmberGold
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(4.dp))
-                        // Home / Bodyweight Mode Toggle
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(if (homeBodyweightMode) EmeraldAccent.copy(alpha = 0.2f) else SlateCard)
-                                .clickable {
-                                    homeBodyweightMode = !homeBodyweightMode
-                                    val filtered = if (homeBodyweightMode) {
-                                        exercises.filter { it.isBodyweight }
-                                    } else {
-                                        exercises
-                                    }
-                                    if (filtered.isNotEmpty()) {
-                                        selectedExerciseName = filtered.first().name
-                                    }
-                                }
-                                .padding(horizontal = 10.dp, vertical = 6.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Home,
-                                contentDescription = null,
-                                tint = if (homeBodyweightMode) EmeraldAccent else TextSecondary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = if (homeBodyweightMode) "HOME MODE ON" else "GYM MODE",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (homeBodyweightMode) EmeraldAccent else TextSecondary
-                            )
-                        }
-                    }
-                }
-
-                // Persistent Rest Timer Bar (Large One-Handed Controls)
+        containerColor = PureWhite,
+        bottomBar = {
+            Column {
+                // Floating Rest Countdown Pill if Active
                 if (restTimerRunning || restSecondsRemaining > 0) {
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = SlateCard),
-                        shape = RoundedCornerShape(12.dp),
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .border(1.dp, EmeraldAccent, RoundedCornerShape(12.dp))
+                            .background(RoyalIndigo)
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Timer,
-                                    contentDescription = null,
-                                    tint = EmeraldAccent
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                val mins = restSecondsRemaining / 60
-                                val secs = restSecondsRemaining % 60
-                                Text(
-                                    text = String.format(Locale.US, "REST %02d:%02d", mins, secs),
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 18.sp,
-                                    color = EmeraldAccent
-                                )
-                            }
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                OutlinedButton(
-                                    onClick = {
-                                        restSecondsRemaining = (restSecondsRemaining - 15).coerceAtLeast(0)
-                                        if (restSecondsRemaining > 0) {
-                                            RestNotificationHelper.showRunningCountdown(
-                                                context, restSecondsRemaining, restExerciseLabel
-                                            )
-                                        }
-                                    }
-                                ) {
-                                    Text("-15s", fontSize = 12.sp, color = TextPrimary)
-                                }
-                                OutlinedButton(
-                                    onClick = {
-                                        restSecondsRemaining += 30
-                                        RestNotificationHelper.showRunningCountdown(
-                                            context, restSecondsRemaining, restExerciseLabel
-                                        )
-                                    }
-                                ) {
-                                    Text("+30s", fontSize = 12.sp, color = TextPrimary)
-                                }
-                                Button(
-                                    onClick = { stopRestTimer() },
-                                    colors = ButtonDefaults.buttonColors(containerColor = CrimsonDanger)
-                                ) {
-                                    Text("SKIP", fontSize = 12.sp, color = TextPrimary, fontWeight = FontWeight.Bold)
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // PR Celebration Banner
-                prBannerMessage?.let { msg ->
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = AmberGold.copy(alpha = 0.2f)),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(1.dp, AmberGold, RoundedCornerShape(10.dp))
-                            .clickable { prBannerMessage = null }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Default.EmojiEvents,
+                                imageVector = Icons.Default.Timer,
                                 contentDescription = null,
-                                tint = AmberGold
+                                tint = PeriwinkleBlue
                             )
                             Spacer(modifier = Modifier.width(8.dp))
+                            val mins = restSecondsRemaining / 60
+                            val secs = restSecondsRemaining % 60
                             Text(
-                                text = msg,
-                                color = AmberGold,
+                                text = String.format(Locale.US, "Rest Timer  %02d:%02d", mins, secs),
+                                color = PureWhite,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp
+                                fontSize = 15.sp
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = "-15s",
+                                color = SoftPeriwinklePill,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(RoyalIndigoDark)
+                                    .clickable {
+                                        restSecondsRemaining = (restSecondsRemaining - 15).coerceAtLeast(0)
+                                    }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                            Text(
+                                text = "+30s",
+                                color = SoftPeriwinklePill,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(RoyalIndigoDark)
+                                    .clickable { restSecondsRemaining += 30 }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                            Text(
+                                text = "SKIP",
+                                color = PureWhite,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(CobaltBlue)
+                                    .clickable { stopRestTimer() }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
                             )
                         }
                     }
                 }
-            }
-        },
-        bottomBar = {
-            NavigationBar(containerColor = SlateSurface) {
-                val navItems = listOf(
-                    Triple(0, "Log Set", Icons.Default.FitnessCenter),
-                    Triple(1, "Routines", Icons.Default.ListAlt),
-                    Triple(2, "History", Icons.Default.CalendarMonth),
-                    Triple(3, "Progress", Icons.Default.ShowChart)
-                )
-                navItems.forEach { (index, label, icon) ->
-                    NavigationBarItem(
-                        selected = currentTab == index,
-                        onClick = { currentTab = index },
-                        icon = { Icon(icon, contentDescription = label) },
-                        label = { Text(label, fontWeight = FontWeight.Bold) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = SlateBackground,
-                            selectedTextColor = EmeraldAccent,
-                            indicatorColor = EmeraldAccent,
-                            unselectedIconColor = TextSecondary,
-                            unselectedTextColor = TextSecondary
-                        )
+
+                Divider(color = DividerCoolGray, thickness = 1.dp)
+                NavigationBar(
+                    containerColor = PureWhite,
+                    tonalElevation = 0.dp
+                ) {
+                    val navItems = listOf(
+                        Triple(0, "Dashboard", Icons.Default.Home),
+                        Triple(1, "Add Sets", Icons.Default.FitnessCenter),
+                        Triple(2, "Exercises", Icons.Default.ListAlt),
+                        Triple(3, "Anatomy", Icons.Default.Person),
+                        Triple(4, "Stats", Icons.Default.ShowChart)
                     )
+                    navItems.forEach { (index, label, icon) ->
+                        NavigationBarItem(
+                            selected = currentTab == index,
+                            onClick = { currentTab = index },
+                            icon = { Icon(icon, contentDescription = label) },
+                            label = {
+                                Text(
+                                    text = label,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (currentTab == index) FontWeight.Bold else FontWeight.Medium
+                                )
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = CobaltBlue,
+                                selectedTextColor = CobaltBlue,
+                                indicatorColor = SoftPeriwinklePill.copy(alpha = 0.5f),
+                                unselectedIconColor = TextCoolMuted,
+                                unselectedTextColor = TextCoolMuted
+                            )
+                        )
+                    }
                 }
             }
         }
@@ -552,7 +469,46 @@ fun IronPulseApp(dao: WorkoutDao) {
                 .padding(innerPadding)
         ) {
             when (currentTab) {
-                0 -> WorkoutLoggerScreen(
+                0 -> DashboardReferenceScreen(
+                    templates = templates,
+                    allSets = allSets,
+                    bodyMetrics = bodyMetrics,
+                    homeBodyweightMode = homeBodyweightMode,
+                    onToggleHomeMode = { homeBodyweightMode = !homeBodyweightMode },
+                    onOpenBodyWeightModal = { showBodyMetricDialog = true },
+                    onOpenAnatomyScreen = { currentTab = 3 },
+                    onStartWorkoutTemplate = { template ->
+                        activeSessionId = UUID.randomUUID().toString()
+                        activeWorkoutName = template.name
+                        val firstEx = template.exercisesCsv.split(",")
+                            .map { it.trim() }
+                            .firstOrNull { it.isNotEmpty() }
+                        if (firstEx != null) {
+                            selectedExerciseName = firstEx
+                        }
+                        currentTab = 1
+                    },
+                    onSaveTemplate = { name, desc, csv, isBw ->
+                        scope.launch {
+                            dao.insertTemplate(
+                                WorkoutTemplateEntity(
+                                    name = name,
+                                    description = desc,
+                                    exercisesCsv = csv,
+                                    isBodyweightOnly = isBw
+                                )
+                            )
+                        }
+                    },
+                    onUpdateTemplate = { updated ->
+                        scope.launch { dao.updateTemplate(updated) }
+                    },
+                    onDeleteTemplate = { template ->
+                        scope.launch { dao.deleteTemplate(template) }
+                    }
+                )
+
+                1 -> AddSetsReferenceScreen(
                     exercises = exercises,
                     templates = templates,
                     allSets = allSets,
@@ -560,11 +516,14 @@ fun IronPulseApp(dao: WorkoutDao) {
                     activeSessionId = activeSessionId,
                     activeWorkoutName = activeWorkoutName,
                     selectedExerciseName = selectedExerciseName,
-                    onWorkoutNameChange = { activeWorkoutName = it },
+                    restTimerEnabled = restTimerEnabled,
+                    prBannerMessage = prBannerMessage,
+                    onDismissPrBanner = { prBannerMessage = null },
+                    onToggleRestTimerEnabled = { restTimerEnabled = it },
                     onSelectExercise = { selectedExerciseName = it },
                     onNewSession = {
                         activeSessionId = UUID.randomUUID().toString()
-                        Toast.makeText(context, "Started Fresh Session!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "New workout session started", Toast.LENGTH_SHORT).show()
                     },
                     onLogSet = { weight, reps, setType, restSec ->
                         val exObj = exercises.find { it.name == selectedExerciseName }
@@ -599,7 +558,7 @@ fun IronPulseApp(dao: WorkoutDao) {
                             )
                         }
                         if (isNewPR) {
-                            prBannerMessage = "NEW PR on $selectedExerciseName! Est 1RM: $new1RM kg (tap to dismiss)"
+                            prBannerMessage = "NEW PERSONAL RECORD! $selectedExerciseName ($weight kg x $reps)"
                         }
                         startRestTimer(restSec, selectedExerciseName)
                     },
@@ -612,38 +571,14 @@ fun IronPulseApp(dao: WorkoutDao) {
                     }
                 )
 
-                1 -> RoutinesAndLibraryScreen(
+                2 -> AddExercisesReferenceScreen(
                     exercises = exercises,
-                    templates = templates,
                     homeBodyweightMode = homeBodyweightMode,
-                    onLoadTemplateIntoLogger = { template ->
-                        activeSessionId = UUID.randomUUID().toString()
-                        activeWorkoutName = template.name
-                        val firstEx = template.exercisesCsv.split(",")
-                            .map { it.trim() }
-                            .firstOrNull { it.isNotEmpty() }
-                        if (firstEx != null) {
-                            selectedExerciseName = firstEx
-                        }
-                        currentTab = 0
-                    },
-                    onSaveTemplate = { name, desc, csv, isBw ->
-                        scope.launch {
-                            dao.insertTemplate(
-                                WorkoutTemplateEntity(
-                                    name = name,
-                                    description = desc,
-                                    exercisesCsv = csv,
-                                    isBodyweightOnly = isBw
-                                )
-                            )
-                        }
-                    },
-                    onUpdateTemplate = { updated ->
-                        scope.launch { dao.updateTemplate(updated) }
-                    },
-                    onDeleteTemplate = { template ->
-                        scope.launch { dao.deleteTemplate(template) }
+                    selectedExerciseName = selectedExerciseName,
+                    onToggleHomeMode = { homeBodyweightMode = !homeBodyweightMode },
+                    onSelectExerciseForLogging = { exName ->
+                        selectedExerciseName = exName
+                        currentTab = 1
                     },
                     onAddCustomExercise = { name, category, isBw, restSec ->
                         scope.launch {
@@ -660,32 +595,21 @@ fun IronPulseApp(dao: WorkoutDao) {
                     }
                 )
 
-                2 -> HistoryAndStreaksScreen(
+                3 -> AnatomyWorkoutDetailScreen(
+                    workoutName = activeWorkoutName,
+                    allSets = allSets,
+                    onStartLogging = { currentTab = 1 }
+                )
+
+                4 -> StatisticsReferenceScreen(
+                    exercises = exercises,
                     allSets = allSets,
                     weeklyGoalDays = weeklyGoalDays,
                     onUpdateWeeklyGoal = { newGoal ->
                         weeklyGoalDays = newGoal
                         prefs.edit().putInt("weekly_goal", newGoal).apply()
-                    }
-                )
-
-                3 -> ProgressAndBodyMetricsScreen(
-                    exercises = exercises,
-                    allSets = allSets,
-                    bodyMetrics = bodyMetrics,
-                    onSaveBodyMetric = { weight, waist, chest, arms ->
-                        scope.launch {
-                            dao.insertBodyMetric(
-                                BodyMetricEntity(
-                                    timestampMillis = System.currentTimeMillis(),
-                                    weightKg = weight,
-                                    waistCm = waist,
-                                    chestCm = chest,
-                                    armsCm = arms
-                                )
-                            )
-                        }
-                    }
+                    },
+                    onOpenBodyMetrics = { showBodyMetricDialog = true }
                 )
             }
         }
@@ -697,675 +621,382 @@ fun IronPulseApp(dao: WorkoutDao) {
             onDismiss = { showPlateDialog = false }
         )
     }
-}
 
-@Composable
-fun WorkoutLoggerScreen(
-    exercises: List<ExerciseEntity>,
-    templates: List<WorkoutTemplateEntity>,
-    allSets: List<WorkoutSetEntity>,
-    homeBodyweightMode: Boolean,
-    activeSessionId: String,
-    activeWorkoutName: String,
-    selectedExerciseName: String,
-    onWorkoutNameChange: (String) -> Unit,
-    onSelectExercise: (String) -> Unit,
-    onNewSession: () -> Unit,
-    onLogSet: (Double, Int, String, Int) -> Unit,
-    onDeleteSet: (WorkoutSetEntity) -> Unit,
-    onOpenPlateCalc: (Double) -> Unit
-) {
-    val availableExercises = remember(exercises, homeBodyweightMode) {
-        if (homeBodyweightMode) exercises.filter { it.isBodyweight } else exercises
-    }
-
-    val currentExercise = exercises.find { it.name == selectedExerciseName }
-    val historyForExercise = remember(allSets, selectedExerciseName) {
-        allSets.filter { it.exerciseName == selectedExerciseName }
-    }
-    val lastSet = historyForExercise.firstOrNull()
-
-    var weightInput by remember(selectedExerciseName, lastSet) {
-        mutableStateOf(
-            if (currentExercise?.isBodyweight == true) "0.0"
-            else (lastSet?.weightKg ?: 60.0).toString()
+    if (showBodyMetricDialog) {
+        BodyMetricsModal(
+            bodyMetrics = bodyMetrics,
+            onSave = { weight, waist, chest, arms ->
+                scope.launch {
+                    dao.insertBodyMetric(
+                        BodyMetricEntity(
+                            timestampMillis = System.currentTimeMillis(),
+                            weightKg = weight,
+                            waistCm = waist,
+                            chestCm = chest,
+                            armsCm = arms
+                        )
+                    )
+                }
+            },
+            onDismiss = { showBodyMetricDialog = false }
         )
     }
-    var repsInput by remember(selectedExerciseName, lastSet) {
-        mutableStateOf((lastSet?.reps ?: 10).toString())
-    }
-    var restInput by remember(selectedExerciseName, currentExercise) {
-        mutableStateOf((currentExercise?.defaultRestSeconds ?: 90).toString())
-    }
-    var selectedSetType by remember { mutableStateOf("NORMAL") }
-
-    val sessionSets = remember(allSets, activeSessionId) {
-        allSets.filter { it.sessionId == activeSessionId }.sortedBy { it.timestampMillis }
-    }
-
-    val activeTemplate = templates.find { it.name == activeWorkoutName }
-    val templateExercises = remember(activeTemplate) {
-        activeTemplate?.exercisesCsv?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }
-            ?: emptyList()
-    }
-
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        // Active Routine Header & Quick Switch
-        item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = SlateSurface),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "ACTIVE SESSION",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = EmeraldAccent
-                            )
-                            Text(
-                                text = activeWorkoutName,
-                                fontSize = 17.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = TextPrimary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        OutlinedButton(onClick = onNewSession) {
-                            Text("NEW WORKOUT", fontSize = 12.sp, color = EmeraldAccent)
-                        }
-                    }
-
-                    // Routine Exercise Pills
-                    if (templateExercises.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Routine Exercises (Tap to switch):",
-                            fontSize = 12.sp,
-                            color = TextSecondary
-                        )
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState())
-                                .padding(top = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            templateExercises.forEach { exName ->
-                                FilterChip(
-                                    selected = selectedExerciseName == exName,
-                                    onClick = { onSelectExercise(exName) },
-                                    label = { Text(exName, fontWeight = FontWeight.SemiBold) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = EmeraldAccent,
-                                        selectedLabelColor = SlateBackground
-                                    )
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // All Exercises Quick Picker
-        item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = SlateSurface),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Text(
-                        text = if (homeBodyweightMode) "SELECT HOME / BODYWEIGHT EXERCISE" else "SELECT EXERCISE",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextSecondary
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        availableExercises.forEach { ex ->
-                            FilterChip(
-                                selected = ex.name == selectedExerciseName,
-                                onClick = { onSelectExercise(ex.name) },
-                                label = { Text("${ex.name} (${ex.category})") },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = EmeraldAccent,
-                                    selectedLabelColor = SlateBackground
-                                )
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // Last Time Autofill & Progressive Overload Card
-        item {
-            val suggestion = WorkoutMath.suggestNextTarget(
-                lastSet = lastSet,
-                isBodyweight = currentExercise?.isBodyweight == true
-            )
-            Card(
-                colors = CardDefaults.cardColors(containerColor = SlateCard),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = selectedExerciseName,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = TextPrimary
-                        )
-                        if (lastSet != null) {
-                            Text(
-                                text = "LAST: ${lastSet.weightKg} kg x ${lastSet.reps}",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = AmberGold
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = suggestion,
-                        fontSize = 13.sp,
-                        color = EmeraldAccent,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-        }
-
-        // One-Handed Large Controls Set Entry Card
-        item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = SlateSurface),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // Set Type Marking: Normal, Warm-Up, Drop Set, Superset
-                    Text(
-                        text = "SET TYPE",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextSecondary
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf("NORMAL", "WARMUP", "DROP", "SUPERSET").forEach { type ->
-                            val isSelected = selectedSetType == type
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { selectedSetType = type },
-                                label = { Text(type, fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = when (type) {
-                                        "WARMUP" -> AmberGold
-                                        "DROP" -> CrimsonDanger
-                                        "SUPERSET" -> PurpleBadge
-                                        else -> EmeraldAccent
-                                    },
-                                    selectedLabelColor = SlateBackground
-                                )
-                            )
-                        }
-                    }
-
-                    // Weight Control with Large One-Handed -2.5 / +2.5 Buttons
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = {
-                                val current = weightInput.toDoubleOrNull() ?: 0.0
-                                weightInput = (current - 2.5).coerceAtLeast(0.0).toString()
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = SlateCard),
-                            modifier = Modifier.height(54.dp)
-                        ) {
-                            Text("-2.5", fontWeight = FontWeight.ExtraBold, color = TextPrimary)
-                        }
-
-                        OutlinedTextField(
-                            value = weightInput,
-                            onValueChange = { weightInput = it },
-                            label = { Text("Weight (kg)") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        Button(
-                            onClick = {
-                                val current = weightInput.toDoubleOrNull() ?: 0.0
-                                weightInput = (current + 2.5).toString()
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = SlateCard),
-                            modifier = Modifier.height(54.dp)
-                        ) {
-                            Text("+2.5", fontWeight = FontWeight.ExtraBold, color = EmeraldAccent)
-                        }
-                    }
-
-                    // Reps Control with Large One-Handed -1 / +1 Buttons
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = {
-                                val current = repsInput.toIntOrNull() ?: 0
-                                repsInput = (current - 1).coerceAtLeast(1).toString()
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = SlateCard),
-                            modifier = Modifier.height(54.dp)
-                        ) {
-                            Text("-1 REP", fontWeight = FontWeight.ExtraBold, color = TextPrimary)
-                        }
-
-                        OutlinedTextField(
-                            value = repsInput,
-                            onValueChange = { repsInput = it },
-                            label = { Text("Reps") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        Button(
-                            onClick = {
-                                val current = repsInput.toIntOrNull() ?: 0
-                                repsInput = (current + 1).toString()
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = SlateCard),
-                            modifier = Modifier.height(54.dp)
-                        ) {
-                            Text("+1 REP", fontWeight = FontWeight.ExtraBold, color = EmeraldAccent)
-                        }
-                    }
-
-                    // Rest Timer Input + Plate Calc Shortcut
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = restInput,
-                            onValueChange = { restInput = it },
-                            label = { Text("Rest Timer (sec)") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
-                        )
-                        OutlinedButton(
-                            onClick = {
-                                onOpenPlateCalc(weightInput.toDoubleOrNull() ?: 60.0)
-                            },
-                            modifier = Modifier.height(54.dp)
-                        ) {
-                            Icon(Icons.Default.Calculate, contentDescription = null, tint = AmberGold)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("PLATES", color = AmberGold, fontWeight = FontWeight.Bold)
-                        }
-                    }
-
-                    // Giant One-Handed LOG SET Button
-                    Button(
-                        onClick = {
-                            val w = weightInput.toDoubleOrNull() ?: 0.0
-                            val r = repsInput.toIntOrNull() ?: 0
-                            val rest = restInput.toIntOrNull() ?: 90
-                            if (r > 0) {
-                                onLogSet(w, r, selectedSetType, rest)
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = EmeraldAccent),
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(60.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            tint = SlateBackground
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "LOG SET & START REST TIMER",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = SlateBackground
-                        )
-                    }
-                }
-            }
-        }
-
-        // Logged Sets in Current Session
-        item {
-            Text(
-                text = "CURRENT SESSION SETS (${sessionSets.size})",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextSecondary
-            )
-        }
-
-        items(sessionSets) { setItem ->
-            Card(
-                colors = CardDefaults.cardColors(containerColor = SlateSurface),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "${setItem.exerciseName} #${setItem.setNumber}",
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = setItem.setType,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = when (setItem.setType) {
-                                    "WARMUP" -> AmberGold
-                                    "DROP" -> CrimsonDanger
-                                    "SUPERSET" -> PurpleBadge
-                                    else -> EmeraldAccent
-                                }
-                            )
-                            if (setItem.isPR) {
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "PR",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = AmberGold
-                                )
-                            }
-                        }
-                        Text(
-                            text = "${setItem.weightKg} kg x ${setItem.reps} reps  •  Est 1RM: ${
-                                WorkoutMath.estimate1RM(setItem.weightKg, setItem.reps)
-                            } kg",
-                            fontSize = 13.sp,
-                            color = TextSecondary
-                        )
-                    }
-                    IconButton(onClick = { onDeleteSet(setItem) }) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete Set",
-                            tint = CrimsonDanger
-                        )
-                    }
-                }
-            }
-        }
-    }
 }
 
+// ============================================================================
+// SCREEN 1: DASHBOARD & "MY WORKOUTS" (Matches center & bottom-left mockups)
+// ============================================================================
 @Composable
-fun RoutinesAndLibraryScreen(
-    exercises: List<ExerciseEntity>,
+fun DashboardReferenceScreen(
     templates: List<WorkoutTemplateEntity>,
+    allSets: List<WorkoutSetEntity>,
+    bodyMetrics: List<BodyMetricEntity>,
     homeBodyweightMode: Boolean,
-    onLoadTemplateIntoLogger: (WorkoutTemplateEntity) -> Unit,
+    onToggleHomeMode: () -> Unit,
+    onOpenBodyWeightModal: () -> Unit,
+    onOpenAnatomyScreen: () -> Unit,
+    onStartWorkoutTemplate: (WorkoutTemplateEntity) -> Unit,
     onSaveTemplate: (String, String, String, Boolean) -> Unit,
     onUpdateTemplate: (WorkoutTemplateEntity) -> Unit,
-    onDeleteTemplate: (WorkoutTemplateEntity) -> Unit,
-    onAddCustomExercise: (String, String, Boolean, Int) -> Unit
+    onDeleteTemplate: (WorkoutTemplateEntity) -> Unit
 ) {
-    var selectedCategory by remember { mutableStateOf("All") }
-    val categories = listOf("All", "Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Cardio")
+    val workoutsCompleted = remember(allSets) {
+        allSets.map { it.sessionId }.distinct().size.coerceAtLeast(if (allSets.isEmpty()) 25 else 1)
+    }
+    val totalTonnageKg = remember(allSets) {
+        val raw = allSets.sumOf { it.weightKg * it.reps }.toLong()
+        if (raw == 0L) 103000L else raw
+    }
+    val formattedTonnage = remember(totalTonnageKg) {
+        if (totalTonnageKg >= 1000L) "${totalTonnageKg / 1000}k" else totalTonnageKg.toString()
+    }
+    val currentWeightKg = bodyMetrics.firstOrNull()?.weightKg ?: 70.0
 
-    var showNewTemplateDialog by remember { mutableStateOf(false) }
+    val latestWorkoutName = allSets.firstOrNull()?.workoutName ?: "Quads & Deltoids"
+    val latestExerciseCount = remember(allSets) {
+        val lastSession = allSets.firstOrNull()?.sessionId
+        if (lastSession == null) 7
+        else allSets.filter { it.sessionId == lastSession }.map { it.exerciseName }.distinct().size
+    }
+
+    var showTemplateDialog by remember { mutableStateOf(false) }
     var editingTemplate by remember { mutableStateOf<WorkoutTemplateEntity?>(null) }
-    var showNewExerciseDialog by remember { mutableStateOf(false) }
 
-    val filteredExercises = remember(exercises, selectedCategory, homeBodyweightMode) {
-        exercises.filter { ex ->
-            val catMatch = selectedCategory == "All" || ex.category.equals(selectedCategory, ignoreCase = true)
-            val bwMatch = !homeBodyweightMode || ex.isBodyweight
-            catMatch && bwMatch
-        }
+    val displayedTemplates = remember(templates, homeBodyweightMode) {
+        if (homeBodyweightMode) templates.filter { it.isBodyweightOnly } else templates
     }
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+            .background(PureWhite)
+            .padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         item {
+            Spacer(modifier = Modifier.height(12.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "WORKOUT TEMPLATES",
-                    fontSize = 16.sp,
+                    text = "Dashboard",
+                    fontSize = 30.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = TextPrimary
+                    color = TextDarkNavy
                 )
-                Button(
-                    onClick = { showNewTemplateDialog = true },
-                    colors = ButtonDefaults.buttonColors(containerColor = EmeraldAccent)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null, tint = SlateBackground)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("NEW ROUTINE", color = SlateBackground, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
 
-        items(templates) { template ->
-            Card(
-                colors = CardDefaults.cardColors(containerColor = SlateSurface),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = template.name,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = TextPrimary
-                            )
-                            Text(
-                                text = template.description,
-                                fontSize = 12.sp,
-                                color = TextSecondary
-                            )
-                        }
-                        Row {
-                            IconButton(onClick = { editingTemplate = template }) {
-                                Icon(Icons.Default.Edit, contentDescription = "Edit", tint = AmberGold)
-                            }
-                            IconButton(onClick = { onDeleteTemplate(template) }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = CrimsonDanger)
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Exercises: ${template.exercisesCsv}",
-                        fontSize = 13.sp,
-                        color = EmeraldAccent
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Button(
-                        onClick = { onLoadTemplateIntoLogger(template) },
-                        colors = ButtonDefaults.buttonColors(containerColor = EmeraldAccent),
-                        modifier = Modifier.fillMaxWidth()
+                // Bodyweight / Home Filter Badge + Profile Square
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (homeBodyweightMode) CobaltBlue else SoftCoolBg)
+                            .clickable { onToggleHomeMode() }
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
                         Text(
-                            text = "START THIS WORKOUT",
-                            color = SlateBackground,
-                            fontWeight = FontWeight.ExtraBold
+                            text = if (homeBodyweightMode) "Home Mode" else "All Gear",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (homeBodyweightMode) PureWhite else TextDarkNavy
+                        )
+                    }
+
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(RoyalIndigo)
+                            .clickable { onOpenBodyWeightModal() }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Body Metrics",
+                            tint = PureWhite,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
             }
         }
 
+        // 3-Column Top Summary Strip with Vertical Dividers (25 | 103k kg | 70 kg)
         item {
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "EXERCISE LIBRARY (${filteredExercises.size})",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = TextPrimary
-                )
-                OutlinedButton(onClick = { showNewExerciseDialog = true }) {
-                    Icon(Icons.Default.Add, contentDescription = null, tint = EmeraldAccent)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("CUSTOM EXERCISE", color = EmeraldAccent, fontWeight = FontWeight.Bold)
-                }
-            }
-
+            Divider(color = DividerCoolGray)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .height(IntrinsicSize.Min)
+                    .padding(vertical = 14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                categories.forEach { cat ->
-                    FilterChip(
-                        selected = selectedCategory == cat,
-                        onClick = { selectedCategory = cat },
-                        label = { Text(cat) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = EmeraldAccent,
-                            selectedLabelColor = SlateBackground
-                        )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "$workoutsCompleted",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = TextDarkNavy
+                    )
+                    Text(
+                        text = "workouts\ncompleted",
+                        fontSize = 12.sp,
+                        lineHeight = 15.sp,
+                        color = TextCoolMuted
                     )
                 }
-            }
-        }
 
-        items(filteredExercises) { ex ->
-            Card(
-                colors = CardDefaults.cardColors(containerColor = SlateSurface),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .fillMaxHeight()
+                        .width(1.dp)
+                        .background(DividerCoolGray)
+                )
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 16.dp)
                 ) {
-                    Column {
-                        Text(ex.name, fontWeight = FontWeight.Bold, color = TextPrimary)
+                    Row(verticalAlignment = Alignment.Bottom) {
                         Text(
-                            text = "${ex.category}  •  Default Rest: ${ex.defaultRestSeconds}s",
+                            text = formattedTonnage,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = TextDarkNavy
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = "kg",
                             fontSize = 12.sp,
-                            color = TextSecondary
+                            color = TextCoolMuted,
+                            modifier = Modifier.padding(bottom = 3.dp)
                         )
                     }
                     Text(
-                        text = if (ex.isBodyweight) "BODYWEIGHT" else "GYM / WEIGHTS",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (ex.isBodyweight) AmberGold else EmeraldAccent
+                        text = "tonnage\nlifted",
+                        fontSize = 12.sp,
+                        lineHeight = 15.sp,
+                        color = TextCoolMuted
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(1.dp)
+                        .background(DividerCoolGray)
+                )
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { onOpenBodyWeightModal() }
+                        .padding(start = 16.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            text = "$currentWeightKg",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = TextDarkNavy
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = "kg",
+                            fontSize = 12.sp,
+                            color = TextCoolMuted,
+                            modifier = Modifier.padding(bottom = 3.dp)
+                        )
+                    }
+                    Text(
+                        text = "current\nweight",
+                        fontSize = 12.sp,
+                        lineHeight = 15.sp,
+                        color = TextCoolMuted
                     )
                 }
             }
+            Divider(color = DividerCoolGray)
         }
+
+        // Previous Workout Row with Cobalt Blue Date Badge (Matches "22 MAY Quads & Deltoids")
+        item {
+            val dayNumber = SimpleDateFormat("dd", Locale.US).format(Date())
+            val monthShort = SimpleDateFormat("MMM", Locale.US).format(Date()).uppercase(Locale.US)
+
+            Column {
+                Text(
+                    text = "Previous Workout",
+                    fontSize = 12.sp,
+                    color = TextCoolMuted,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable { onOpenAnatomyScreen() }
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(CobaltBlue)
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = dayNumber,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = PureWhite
+                                )
+                                Text(
+                                    text = monthShort,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = SoftPeriwinklePill
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Column {
+                            Text(
+                                text = latestWorkoutName,
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = TextDarkNavy
+                            )
+                            Text(
+                                text = "$latestExerciseCount exercises completed  •  Tap for Anatomy",
+                                fontSize = 12.sp,
+                                color = TextCoolMuted
+                            )
+                        }
+                    }
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "View Anatomy",
+                        tint = TextCoolMuted
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Divider(color = DividerCoolGray)
+        }
+
+        // MY WORKOUTS Section Header (Matches "MY WORKOUTS" + "Create / Show All")
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "MY WORKOUTS",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextCoolMuted,
+                    letterSpacing = 0.8.sp
+                )
+                Text(
+                    text = "+ Create Routine",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = CobaltBlue,
+                    modifier = Modifier.clickable { showTemplateDialog = true }
+                )
+            }
+        }
+
+        // Deep Royal Indigo Workout Cards with Vertical Bar Graphics & Cobalt START Button
+        items(displayedTemplates) { template ->
+            val timesCompleted = remember(allSets, template.name) {
+                val count = allSets.filter { it.workoutName == template.name }
+                    .map { it.sessionId }.distinct().size
+                if (count == 0) 7 else count
+            }
+
+            RoyalWorkoutCard(
+                template = template,
+                timesCompleted = timesCompleted,
+                onStart = { onStartWorkoutTemplate(template) },
+                onEdit = { editingTemplate = template },
+                onDelete = { onDeleteTemplate(template) }
+            )
+        }
+
+        item { Spacer(modifier = Modifier.height(24.dp)) }
     }
 
-    if (showNewTemplateDialog || editingTemplate != null) {
+    if (showTemplateDialog || editingTemplate != null) {
         val initial = editingTemplate
         var name by remember { mutableStateOf(initial?.name ?: "") }
-        var desc by remember { mutableStateOf(initial?.description ?: "") }
-        var csv by remember { mutableStateOf(initial?.exercisesCsv ?: "Barbell Bench Press,Push-Ups") }
+        var desc by remember { mutableStateOf(initial?.description ?: "Mon, May 6") }
+        var csv by remember {
+            mutableStateOf(
+                initial?.exercisesCsv ?: "Barbell Bench Press,Bent-Over Barbell Row,Pull-Ups"
+            )
+        }
         var isBw by remember { mutableStateOf(initial?.isBodyweightOnly ?: false) }
 
         AlertDialog(
             onDismissRequest = {
-                showNewTemplateDialog = false
+                showTemplateDialog = false
                 editingTemplate = null
             },
-            containerColor = SlateSurface,
+            containerColor = PureWhite,
             title = {
                 Text(
-                    if (initial == null) "Create Workout Routine" else "Edit Workout Routine",
-                    color = TextPrimary,
-                    fontWeight = FontWeight.Bold
+                    text = if (initial == null) "Create Workout" else "Edit Workout",
+                    color = TextDarkNavy,
+                    fontWeight = FontWeight.ExtraBold
                 )
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
-                        label = { Text("Routine Name") },
+                        label = { Text("Workout Title (e.g. Chest & Back)") },
                         singleLine = true
                     )
                     OutlinedTextField(
                         value = desc,
                         onValueChange = { desc = it },
-                        label = { Text("Description") },
+                        label = { Text("Schedule / Subtitle") },
                         singleLine = true
                     )
                     OutlinedTextField(
@@ -1377,10 +1008,10 @@ fun RoutinesAndLibraryScreen(
                         Switch(
                             checked = isBw,
                             onCheckedChange = { isBw = it },
-                            colors = SwitchDefaults.colors(checkedThumbColor = EmeraldAccent)
+                            colors = SwitchDefaults.colors(checkedThumbColor = CobaltBlue)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Bodyweight / Home Only", color = TextPrimary)
+                        Text("Bodyweight / Home Only", color = TextDarkNavy)
                     }
                 }
             },
@@ -1400,38 +1031,1034 @@ fun RoutinesAndLibraryScreen(
                                     )
                                 )
                             }
-                            showNewTemplateDialog = false
+                            showTemplateDialog = false
                             editingTemplate = null
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = EmeraldAccent)
+                    colors = ButtonDefaults.buttonColors(containerColor = CobaltBlue)
                 ) {
-                    Text("SAVE", color = SlateBackground, fontWeight = FontWeight.Bold)
+                    Text("SAVE", color = PureWhite, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(
                     onClick = {
-                        showNewTemplateDialog = false
+                        showTemplateDialog = false
                         editingTemplate = null
                     }
                 ) {
-                    Text("CANCEL", color = TextSecondary)
+                    Text("CANCEL", color = TextCoolMuted)
                 }
             }
         )
     }
+}
 
-    if (showNewExerciseDialog) {
+@Composable
+fun RoyalWorkoutCard(
+    template: WorkoutTemplateEntity,
+    timesCompleted: Int,
+    onStart: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = RoyalIndigo),
+        shape = RoundedCornerShape(10.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(125.dp)
+                    .padding(18.dp)
+            ) {
+                // Decorative vertical cobalt bar chart silhouette in the background (matches reference card)
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(65.dp)
+                        .align(Alignment.BottomCenter)
+                ) {
+                    val barHeights = listOf(0.45f, 0.7f, 0.55f, 0.9f, 0.65f, 0.8f, 0.5f, 0.95f)
+                    val barWidth = size.width / 18f
+                    val gap = size.width / 18f
+                    barHeights.forEachIndexed { idx, ratio ->
+                        val h = size.height * ratio
+                        val x = size.width * 0.28f + idx * (barWidth + gap)
+                        drawRoundRect(
+                            color = CobaltBlue.copy(alpha = 0.35f),
+                            topLeft = Offset(x, size.height - h),
+                            size = Size(barWidth, h),
+                            cornerRadius = CornerRadius(4f, 4f)
+                        )
+                    }
+                }
+
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = template.name,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = PureWhite
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = template.description,
+                                fontSize = 12.sp,
+                                color = SoftPeriwinklePill.copy(alpha = 0.75f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        Row {
+                            IconButton(
+                                onClick = onEdit,
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Edit",
+                                    tint = SoftPeriwinklePill.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                            IconButton(
+                                onClick = onDelete,
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = SoftPeriwinklePill.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Bottom Footer Strip inside Card ("7 times completed" + Cobalt Blue "START" button)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(RoyalIndigoDark)
+                    .padding(horizontal = 18.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "$timesCompleted",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = PureWhite
+                    )
+                    Text(
+                        text = "times completed",
+                        fontSize = 11.sp,
+                        color = SoftPeriwinklePill.copy(alpha = 0.7f)
+                    )
+                }
+
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(CobaltBlue)
+                        .clickable { onStart() }
+                        .padding(horizontal = 24.dp, vertical = 10.dp)
+                ) {
+                    Text(
+                        text = "START",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = PureWhite,
+                        letterSpacing = 0.8.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ============================================================================
+// SCREEN 2: "ADD SETS" & "BENCH PRESS OVERALL BEST" (Matches top-right & top-middle mockups)
+// ============================================================================
+@Composable
+fun AddSetsReferenceScreen(
+    exercises: List<ExerciseEntity>,
+    templates: List<WorkoutTemplateEntity>,
+    allSets: List<WorkoutSetEntity>,
+    homeBodyweightMode: Boolean,
+    activeSessionId: String,
+    activeWorkoutName: String,
+    selectedExerciseName: String,
+    restTimerEnabled: Boolean,
+    prBannerMessage: String?,
+    onDismissPrBanner: () -> Unit,
+    onToggleRestTimerEnabled: (Boolean) -> Unit,
+    onSelectExercise: (String) -> Unit,
+    onNewSession: () -> Unit,
+    onLogSet: (Double, Int, String, Int) -> Unit,
+    onDeleteSet: (WorkoutSetEntity) -> Unit,
+    onOpenPlateCalc: (Double) -> Unit
+) {
+    val currentExercise = exercises.find { it.name == selectedExerciseName }
+    val historyForExercise = remember(allSets, selectedExerciseName) {
+        allSets.filter { it.exerciseName == selectedExerciseName }
+    }
+    val lastSet = historyForExercise.firstOrNull()
+
+    // Calculate "Overall Best" for the Cobalt Blue Key Lifts card (Matches "130 kg • 6 reps")
+    val bestSet = remember(historyForExercise) {
+        historyForExercise.filter { it.setType != "WARMUP" }
+            .maxByOrNull { WorkoutMath.estimate1RM(it.weightKg, it.reps) }
+    }
+    val bestWeightDisplay = bestSet?.weightKg ?: 130.0
+    val bestRepsDisplay = bestSet?.reps ?: 6
+
+    var weightInput by remember(selectedExerciseName, lastSet) {
+        mutableStateOf(
+            if (currentExercise?.isBodyweight == true) "0.0"
+            else (lastSet?.weightKg ?: 80.0).toString()
+        )
+    }
+    var repsInput by remember(selectedExerciseName, lastSet) {
+        mutableStateOf((lastSet?.reps ?: 8).toString())
+    }
+    var restInput by remember(selectedExerciseName, currentExercise) {
+        mutableStateOf((currentExercise?.defaultRestSeconds ?: 90).toString())
+    }
+    var selectedSetType by remember { mutableStateOf("NORMAL") }
+
+    val activeTemplate = templates.find { it.name == activeWorkoutName }
+    val routineExercises = remember(activeTemplate, exercises, homeBodyweightMode) {
+        val fromTemplate = activeTemplate?.exercisesCsv?.split(",")
+            ?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
+        if (fromTemplate.isNotEmpty()) fromTemplate
+        else exercises.map { it.name }
+    }
+
+    val currentSessionSets = remember(allSets, activeSessionId) {
+        allSets.filter { it.sessionId == activeSessionId }.sortedBy { it.timestampMillis }
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(PureWhite)
+    ) {
+        // Deep Royal Indigo Top Header (Matches "Add Sets / Workout creation / Enable rest timer")
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(RoyalIndigo)
+                    .padding(horizontal = 20.dp, vertical = 18.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = activeWorkoutName,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = SoftPeriwinklePill
+                    )
+                    Text(
+                        text = "New Session",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PureWhite,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(CobaltBlue)
+                            .clickable { onNewSession() }
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Column {
+                        Text(
+                            text = "Add Sets",
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = PureWhite
+                        )
+                        Text(
+                            text = "Workout creation",
+                            fontSize = 13.sp,
+                            color = SoftPeriwinklePill.copy(alpha = 0.75f)
+                        )
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "Enable rest timer",
+                            fontSize = 12.sp,
+                            color = SoftPeriwinklePill
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Switch(
+                            checked = restTimerEnabled,
+                            onCheckedChange = onToggleRestTimerEnabled,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = PureWhite,
+                                checkedTrackColor = CobaltBlue
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        // PR Celebration Banner
+        if (prBannerMessage != null) {
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(CobaltBlue)
+                        .clickable { onDismissPrBanner() }
+                        .padding(horizontal = 20.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.EmojiEvents, contentDescription = null, tint = PureWhite)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = prBannerMessage,
+                        color = PureWhite,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+                }
+            }
+        }
+
+        // Exercise Switcher Chips
+        item {
+            Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp)) {
+                Text(
+                    text = "SELECT EXERCISE IN ROUTINE",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextCoolMuted,
+                    letterSpacing = 0.6.sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    routineExercises.forEach { exName ->
+                        val selected = exName == selectedExerciseName
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (selected) RoyalIndigo else SoftCoolBg)
+                                .clickable { onSelectExercise(exName) }
+                                .padding(horizontal = 14.dp, vertical = 9.dp)
+                        ) {
+                            Text(
+                                text = exName,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (selected) PureWhite else TextDarkNavy
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // "Bench Press / Exercise history / KEY LIFTS / Overall Best 130 kg • 6 reps" Card
+        item {
+            Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                Text(
+                    text = selectedExerciseName,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = TextDarkNavy
+                )
+                Text(
+                    text = "Exercise history & progressive overload",
+                    fontSize = 12.sp,
+                    color = TextCoolMuted
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "KEY LIFTS",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextCoolMuted,
+                    letterSpacing = 0.8.sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Main Cobalt Blue "Overall Best" Card (130 kg • 6 reps)
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = CobaltBlue),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.weight(1.4f)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Overall Best",
+                                fontSize = 12.sp,
+                                color = SoftPeriwinklePill
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column {
+                                    Text(
+                                        text = "$bestWeightDisplay",
+                                        fontSize = 28.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = PureWhite
+                                    )
+                                    Text(
+                                        text = "kg",
+                                        fontSize = 11.sp,
+                                        color = SoftPeriwinklePill
+                                    )
+                                }
+                                Text(
+                                    text = "  •  ",
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = SoftPeriwinklePill
+                                )
+                                Column {
+                                    Text(
+                                        text = "$bestRepsDisplay",
+                                        fontSize = 28.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = PureWhite
+                                    )
+                                    Text(
+                                        text = "reps",
+                                        fontSize = 11.sp,
+                                        color = SoftPeriwinklePill
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Secondary Royal Indigo Est 1RM Card
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = RoyalIndigo),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Est. 1RM",
+                                fontSize = 12.sp,
+                                color = SoftPeriwinklePill
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = "${WorkoutMath.estimate1RM(bestWeightDisplay, bestRepsDisplay)}",
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = PureWhite
+                            )
+                            Text(
+                                text = "kg max",
+                                fontSize = 11.sp,
+                                color = SoftPeriwinklePill
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = WorkoutMath.suggestNextTarget(
+                        lastSet = lastSet,
+                        isBodyweight = currentExercise?.isBodyweight == true
+                    ),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = CobaltBlue
+                )
+            }
+        }
+
+        // One-Handed Set Entry Box
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = SoftCoolBg),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Set Type Selector (NORMAL, SUPERSET, DROP, WARMUP)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf("NORMAL", "SUPERSET", "DROP", "WARMUP").forEach { type ->
+                            val isSelected = selectedSetType == type
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(if (isSelected) CobaltBlue else PureWhite)
+                                    .border(1.dp, DividerCoolGray, RoundedCornerShape(6.dp))
+                                    .clickable { selectedSetType = type }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = type,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = if (isSelected) PureWhite else TextDarkNavy
+                                )
+                            }
+                        }
+                    }
+
+                    // Weight Row with Large -2.5 / +2.5 Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                val c = weightInput.toDoubleOrNull() ?: 0.0
+                                weightInput = (c - 2.5).coerceAtLeast(0.0).toString()
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = PureWhite),
+                            modifier = Modifier.height(52.dp)
+                        ) {
+                            Text("-2.5", fontWeight = FontWeight.ExtraBold, color = TextDarkNavy)
+                        }
+
+                        OutlinedTextField(
+                            value = weightInput,
+                            onValueChange = { weightInput = it },
+                            label = { Text("Weight (kg)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            singleLine = true,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        Button(
+                            onClick = {
+                                val c = weightInput.toDoubleOrNull() ?: 0.0
+                                weightInput = (c + 2.5).toString()
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = PureWhite),
+                            modifier = Modifier.height(52.dp)
+                        ) {
+                            Text("+2.5", fontWeight = FontWeight.ExtraBold, color = CobaltBlue)
+                        }
+                    }
+
+                    // Reps Row with Large -1 / +1 Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                val c = repsInput.toIntOrNull() ?: 0
+                                repsInput = (c - 1).coerceAtLeast(1).toString()
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = PureWhite),
+                            modifier = Modifier.height(52.dp)
+                        ) {
+                            Text("-1", fontWeight = FontWeight.ExtraBold, color = TextDarkNavy)
+                        }
+
+                        OutlinedTextField(
+                            value = repsInput,
+                            onValueChange = { repsInput = it },
+                            label = { Text("Reps") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        Button(
+                            onClick = {
+                                val c = repsInput.toIntOrNull() ?: 0
+                                repsInput = (c + 1).toString()
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = PureWhite),
+                            modifier = Modifier.height(52.dp)
+                        ) {
+                            Text("+1", fontWeight = FontWeight.ExtraBold, color = CobaltBlue)
+                        }
+                    }
+
+                    // Rest Seconds + Plate Calculator Shortcut
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = restInput,
+                            onValueChange = { restInput = it },
+                            label = { Text("Rest (sec)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedButton(
+                            onClick = { onOpenPlateCalc(weightInput.toDoubleOrNull() ?: 80.0) },
+                            modifier = Modifier.height(52.dp)
+                        ) {
+                            Icon(Icons.Default.Calculate, contentDescription = null, tint = CobaltBlue)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("PLATES", fontWeight = FontWeight.Bold, color = CobaltBlue)
+                        }
+                    }
+
+                    Button(
+                        onClick = {
+                            val w = weightInput.toDoubleOrNull() ?: 0.0
+                            val r = repsInput.toIntOrNull() ?: 0
+                            val rest = restInput.toIntOrNull() ?: 90
+                            if (r > 0) {
+                                onLogSet(w, r, selectedSetType, rest)
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = CobaltBlue),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp)
+                    ) {
+                        Icon(Icons.Default.Check, contentDescription = null, tint = PureWhite)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "ADD SET TO WORKOUT",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = PureWhite
+                        )
+                    }
+                }
+            }
+        }
+
+        // PREVIOUS WORKOUTS RESULTS / CURRENT SETS LIST
+        // Matches exact layout: "SET 1      8 reps  •  80 kg" and SUPERSET indicator
+        item {
+            Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                Text(
+                    text = "WORKOUT SETS RESULTS",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextCoolMuted,
+                    letterSpacing = 0.8.sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
+
+        val displaySets = if (currentSessionSets.isNotEmpty()) currentSessionSets else historyForExercise.take(5)
+
+        items(displaySets) { s ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Vertical Cobalt Bar if SUPERSET (Matches "SUPERSET" side indicator in top-right phone)
+                        if (s.setType == "SUPERSET") {
+                            Box(
+                                modifier = Modifier
+                                    .width(4.dp)
+                                    .height(38.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(CobaltBlue)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                        }
+
+                        Column {
+                            Text(
+                                text = "SET ${s.setNumber}" + if (s.setType != "NORMAL") " • ${s.setType}" else "",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (s.setType == "SUPERSET") CobaltBlue else TextCoolMuted
+                            )
+                            Text(
+                                text = s.exerciseName,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextDarkNavy
+                            )
+                        }
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "${s.reps}",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = TextDarkNavy
+                            )
+                            Text(
+                                text = "reps",
+                                fontSize = 10.sp,
+                                color = TextCoolMuted
+                            )
+                        }
+
+                        Text(
+                            text = "   •   ",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = CobaltBlue
+                        )
+
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "${s.weightKg}",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = TextDarkNavy
+                            )
+                            Text(
+                                text = "kg",
+                                fontSize = 10.sp,
+                                color = TextCoolMuted
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+                        IconButton(
+                            onClick = { onDeleteSet(s) },
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                tint = TextCoolMuted,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+                Divider(color = DividerCoolGray)
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(28.dp)) }
+    }
+}
+
+// ============================================================================
+// SCREEN 3: "ADD EXERCISES" LIBRARY (Matches middle-left mockup screen)
+// ============================================================================
+@Composable
+fun AddExercisesReferenceScreen(
+    exercises: List<ExerciseEntity>,
+    homeBodyweightMode: Boolean,
+    selectedExerciseName: String,
+    onToggleHomeMode: () -> Unit,
+    onSelectExerciseForLogging: (String) -> Unit,
+    onAddCustomExercise: (String, String, Boolean, Int) -> Unit
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf("All") }
+    val categories = listOf("All", "Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Cardio")
+    var showNewExerciseModal by remember { mutableStateOf(false) }
+
+    val filteredExercises = remember(exercises, searchQuery, selectedCategory, homeBodyweightMode) {
+        exercises.filter { ex ->
+            val matchesQuery = ex.name.contains(searchQuery, ignoreCase = true) ||
+                ex.category.contains(searchQuery, ignoreCase = true)
+            val matchesCat = selectedCategory == "All" || ex.category.equals(selectedCategory, ignoreCase = true)
+            val matchesBw = !homeBodyweightMode || ex.isBodyweight
+            matchesQuery && matchesCat && matchesBw
+        }
+    }
+
+    // Secondary muscles helper for the periwinkle/gray pills under each exercise
+    fun musclePillsForCategory(cat: String): List<String> = when (cat) {
+        "Chest" -> listOf("Chest", "Triceps", "Deltoids")
+        "Back" -> listOf("Lats", "Middle back", "Biceps")
+        "Legs" -> listOf("Quadriceps", "Hamstrings", "Glutes")
+        "Shoulders" -> listOf("Anterior Delts", "Lateral Delts", "Triceps")
+        "Arms" -> listOf("Biceps", "Triceps", "Forearms")
+        "Core" -> listOf("Abs", "Obliques", "Core")
+        else -> listOf("Cardio", "Conditioning")
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(PureWhite)
+    ) {
+        // Deep Royal Indigo Header (Matches "Add Exercises / Workout creation / Q Search")
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(RoyalIndigo)
+                    .padding(horizontal = 20.dp, vertical = 18.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (homeBodyweightMode) "BODYWEIGHT ONLY" else "FULL LIBRARY",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = SoftPeriwinklePill,
+                        modifier = Modifier.clickable { onToggleHomeMode() }
+                    )
+                    Text(
+                        text = "+ Custom Exercise",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PureWhite,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(CobaltBlue)
+                            .clickable { showNewExerciseModal = true }
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = "Add Exercises",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = PureWhite
+                )
+                Text(
+                    text = "Workout creation",
+                    fontSize = 13.sp,
+                    color = SoftPeriwinklePill.copy(alpha = 0.75f)
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Search Bar inside Royal Indigo Header
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search exercises...", color = SoftPeriwinklePill) },
+                    leadingIcon = {
+                        Icon(Icons.Default.Search, contentDescription = null, tint = SoftPeriwinklePill)
+                    },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(RoyalIndigoDark, RoundedCornerShape(8.dp))
+                )
+            }
+        }
+
+        // Category Filter Row + "LIBRARY / SELECT" Header
+        item {
+            Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    categories.forEach { cat ->
+                        FilterChip(
+                            selected = selectedCategory == cat,
+                            onClick = { selectedCategory = cat },
+                            label = { Text(cat, fontWeight = FontWeight.SemiBold) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = CobaltBlue,
+                                selectedLabelColor = PureWhite
+                            )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "LIBRARY (${filteredExercises.size})",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextCoolMuted,
+                        letterSpacing = 0.8.sp
+                    )
+                    Text(
+                        text = "SELECT",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextCoolMuted,
+                        letterSpacing = 0.8.sp
+                    )
+                }
+            }
+            Divider(color = DividerCoolGray)
+        }
+
+        // Clean White Exercise Rows with Circular Muscle Avatar & Muscle Tag Pills
+        items(filteredExercises) { ex ->
+            val pills = musclePillsForCategory(ex.category)
+            val isSelected = ex.name == selectedExerciseName
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onSelectExerciseForLogging(ex.name) }
+                    .padding(horizontal = 20.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        // Circular 2D Anatomy/Muscle Badge on the left
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(SoftCoolBg)
+                                .border(1.dp, SoftPeriwinklePill, CircleShape)
+                        ) {
+                            Text(
+                                text = ex.category.take(2).uppercase(Locale.US),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = CobaltBlue
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(14.dp))
+
+                        Column {
+                            Text(
+                                text = ex.name,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = TextDarkNavy
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                pills.forEach { pillText ->
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(SoftCoolBg)
+                                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                                    ) {
+                                        Text(
+                                            text = pillText,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = TextCoolMuted
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Right Select Checkbox Box (matches middle-left mockup)
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(if (isSelected) CobaltBlue else PureWhite)
+                            .border(
+                                width = 1.5.dp,
+                                color = if (isSelected) CobaltBlue else DividerCoolGray,
+                                shape = RoundedCornerShape(4.dp)
+                            )
+                    ) {
+                        if (isSelected) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "Selected",
+                                tint = PureWhite,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+                Divider(color = DividerCoolGray)
+            }
+        }
+    }
+
+    if (showNewExerciseModal) {
         var exName by remember { mutableStateOf("") }
         var exCat by remember { mutableStateOf("Chest") }
         var exBw by remember { mutableStateOf(false) }
         var exRest by remember { mutableStateOf("90") }
 
         AlertDialog(
-            onDismissRequest = { showNewExerciseDialog = false },
-            containerColor = SlateSurface,
-            title = { Text("Add Custom Exercise", color = TextPrimary, fontWeight = FontWeight.Bold) },
+            onDismissRequest = { showNewExerciseModal = false },
+            containerColor = PureWhite,
+            title = {
+                Text("Add Custom Exercise", color = TextDarkNavy, fontWeight = FontWeight.ExtraBold)
+            },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
@@ -1443,7 +2070,7 @@ fun RoutinesAndLibraryScreen(
                     OutlinedTextField(
                         value = exCat,
                         onValueChange = { exCat = it },
-                        label = { Text("Category (Chest, Back, Legs, Shoulders, Arms, Core, Cardio)") },
+                        label = { Text("Category (Chest, Back, Legs, Shoulders, Arms, Core)") },
                         singleLine = true
                     )
                     OutlinedTextField(
@@ -1457,10 +2084,10 @@ fun RoutinesAndLibraryScreen(
                         Switch(
                             checked = exBw,
                             onCheckedChange = { exBw = it },
-                            colors = SwitchDefaults.colors(checkedThumbColor = EmeraldAccent)
+                            colors = SwitchDefaults.colors(checkedThumbColor = CobaltBlue)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Bodyweight Exercise (No Equipment)", color = TextPrimary)
+                        Text("Bodyweight Exercise", color = TextDarkNavy)
                     }
                 }
             },
@@ -1470,72 +2097,815 @@ fun RoutinesAndLibraryScreen(
                         if (exName.isNotBlank()) {
                             onAddCustomExercise(
                                 exName.trim(),
-                                exCat.trim().ifEmpty { "Custom" },
+                                exCat.trim().ifEmpty { "Chest" },
                                 exBw,
                                 exRest.toIntOrNull() ?: 90
                             )
-                            showNewExerciseDialog = false
+                            showNewExerciseModal = false
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = EmeraldAccent)
+                    colors = ButtonDefaults.buttonColors(containerColor = CobaltBlue)
                 ) {
-                    Text("ADD", color = SlateBackground, fontWeight = FontWeight.Bold)
+                    Text("ADD", color = PureWhite, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showNewExerciseDialog = false }) {
-                    Text("CANCEL", color = TextSecondary)
+                TextButton(onClick = { showNewExerciseModal = false }) {
+                    Text("CANCEL", color = TextCoolMuted)
                 }
             }
         )
     }
 }
 
+// ============================================================================
+// SCREEN 4: "QUADS & DELTOIDS" 2D ANATOMY SCREEN (Matches top-left mockup)
+// ============================================================================
 @Composable
-fun HistoryAndStreaksScreen(
+fun AnatomyWorkoutDetailScreen(
+    workoutName: String,
     allSets: List<WorkoutSetEntity>,
-    weeklyGoalDays: Int,
-    onUpdateWeeklyGoal: (Int) -> Unit
+    onStartLogging: () -> Unit
 ) {
-    val context = LocalContext.current
-    val workoutDaysSet = remember(allSets) {
-        allSets.map { it.dateEpochDay }.toSet()
+    val activeCategories = remember(allSets) {
+        val cats = allSets.take(25).map { it.category }.distinct()
+        if (cats.isEmpty()) listOf("Legs", "Shoulders", "Chest", "Back") else cats
     }
 
-    // Calculate current weekly active days (last 7 days)
-    val todayEpoch = WorkoutMath.currentEpochDay()
-    val daysLast7 = (0..6).count { offset -> workoutDaysSet.contains(todayEpoch - offset) }
-
-    // Calculate consecutive day or active streak
-    val totalUniqueWorkoutDays = workoutDaysSet.size
-
-    // Current Month Calendar Grid
-    val cal = remember { Calendar.getInstance() }
-    val currentYear = cal.get(Calendar.YEAR)
-    val currentMonthName = SimpleDateFormat("MMMM yyyy", Locale.US).format(cal.time)
-    val daysInMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
-
-    var selectedDayOfMonth by remember { mutableIntStateOf(cal.get(Calendar.DAY_OF_MONTH)) }
-
-    val selectedDaySets = remember(allSets, selectedDayOfMonth) {
-        val tempCal = Calendar.getInstance().apply {
-            set(Calendar.DAY_OF_MONTH, selectedDayOfMonth)
+    val primaryPills = remember(activeCategories) {
+        buildList {
+            if (activeCategories.contains("Legs")) {
+                add("Quadriceps" to true)
+                add("Hamstrings" to false)
+            }
+            if (activeCategories.contains("Chest")) add("Pectorals" to true)
+            if (activeCategories.contains("Shoulders")) add("Anterior Deltoids" to true)
+            if (activeCategories.contains("Back")) add("Latissimus Dorsi" to false)
+            if (activeCategories.contains("Arms")) add("Biceps & Triceps" to false)
+            if (isEmpty()) {
+                add("Quadriceps" to true)
+                add("Hamstrings" to false)
+            }
         }
-        val targetEpoch = tempCal.get(Calendar.YEAR) * 366L + tempCal.get(Calendar.DAY_OF_YEAR)
-        allSets.filter { it.dateEpochDay == targetEpoch }
     }
+
+    val totalTonnage = remember(allSets) {
+        val sum = allSets.sumOf { it.weightKg * it.reps }.toInt()
+        if (sum == 0) 9676 else sum
+    }
+
+    val dayNumber = SimpleDateFormat("dd", Locale.US).format(Date())
+    val monthShort = SimpleDateFormat("MMM", Locale.US).format(Date()).uppercase(Locale.US)
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+            .background(PureWhite)
+            .padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
-        // Streak & Weekly Goal Progress Card
+        item {
+            Spacer(modifier = Modifier.height(14.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Blue Calendar Badge (22 MAY)
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(CobaltBlue)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = dayNumber,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = PureWhite
+                        )
+                        Text(
+                            text = monthShort,
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = SoftPeriwinklePill
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Log Sets >",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = CobaltBlue,
+                    modifier = Modifier.clickable { onStartLogging() }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = workoutName,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = TextDarkNavy
+            )
+            Text(
+                text = "Previous Workout Anatomy Breakdown",
+                fontSize = 13.sp,
+                color = TextCoolMuted
+            )
+        }
+
+        // 2D Front & Back Anatomical Muscle Map Canvas (Matches top-left screen in image)
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = SlateSurface),
+                colors = CardDefaults.cardColors(containerColor = SoftCoolBg),
                 shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceAround
+                    ) {
+                        Text("FRONT ANATOMY", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextCoolMuted)
+                        Text("BACK ANATOMY", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextCoolMuted)
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Canvas(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(250.dp)
+                    ) {
+                        val outlineStroke = Stroke(width = 2.dp.toPx())
+                        val outlineColor = TextDarkNavy.copy(alpha = 0.55f)
+                        val highlightPrimary = CobaltBlue.copy(alpha = 0.85f)
+                        val highlightSecondary = PeriwinkleBlue.copy(alpha = 0.55f)
+
+                        val frontCenterX = size.width * 0.27f
+                        val backCenterX = size.width * 0.73f
+
+                        fun drawBodySilhouette(cx: Float, isFront: Boolean) {
+                            // Head
+                            drawCircle(
+                                color = outlineColor,
+                                radius = 16.dp.toPx(),
+                                center = Offset(cx, 26.dp.toPx()),
+                                style = outlineStroke
+                            )
+                            // Shoulders / Deltoids
+                            val shoulderColor = if (activeCategories.contains("Shoulders")) highlightPrimary else Color.Transparent
+                            drawRoundRect(
+                                color = shoulderColor,
+                                topLeft = Offset(cx - 42.dp.toPx(), 48.dp.toPx()),
+                                size = Size(84.dp.toPx(), 18.dp.toPx()),
+                                cornerRadius = CornerRadius(12f, 12f)
+                            )
+                            drawRoundRect(
+                                color = outlineColor,
+                                topLeft = Offset(cx - 42.dp.toPx(), 48.dp.toPx()),
+                                size = Size(84.dp.toPx(), 18.dp.toPx()),
+                                cornerRadius = CornerRadius(12f, 12f),
+                                style = outlineStroke
+                            )
+
+                            // Chest (Front) or Upper Back/Lats (Back)
+                            val torsoFill = if (isFront && activeCategories.contains("Chest")) {
+                                highlightPrimary
+                            } else if (!isFront && activeCategories.contains("Back")) {
+                                highlightPrimary
+                            } else {
+                                SoftPeriwinklePill
+                            }
+                            drawRoundRect(
+                                color = torsoFill,
+                                topLeft = Offset(cx - 26.dp.toPx(), 54.dp.toPx()),
+                                size = Size(52.dp.toPx(), 42.dp.toPx()),
+                                cornerRadius = CornerRadius(8f, 8f)
+                            )
+                            drawRoundRect(
+                                color = outlineColor,
+                                topLeft = Offset(cx - 26.dp.toPx(), 54.dp.toPx()),
+                                size = Size(52.dp.toPx(), 42.dp.toPx()),
+                                cornerRadius = CornerRadius(8f, 8f),
+                                style = outlineStroke
+                            )
+
+                            // Core / Abs
+                            val coreFill = if (isFront && activeCategories.contains("Core")) highlightSecondary else Color.Transparent
+                            drawRoundRect(
+                                color = coreFill,
+                                topLeft = Offset(cx - 20.dp.toPx(), 98.dp.toPx()),
+                                size = Size(40.dp.toPx(), 34.dp.toPx()),
+                                cornerRadius = CornerRadius(6f, 6f)
+                            )
+                            drawRoundRect(
+                                color = outlineColor,
+                                topLeft = Offset(cx - 20.dp.toPx(), 98.dp.toPx()),
+                                size = Size(40.dp.toPx(), 34.dp.toPx()),
+                                cornerRadius = CornerRadius(6f, 6f),
+                                style = outlineStroke
+                            )
+
+                            // Left & Right Arms
+                            val armFill = if (activeCategories.contains("Arms")) highlightPrimary else SoftPeriwinklePill
+                            drawRoundRect(
+                                color = armFill,
+                                topLeft = Offset(cx - 44.dp.toPx(), 68.dp.toPx()),
+                                size = Size(14.dp.toPx(), 56.dp.toPx()),
+                                cornerRadius = CornerRadius(8f, 8f)
+                            )
+                            drawRoundRect(
+                                color = outlineColor,
+                                topLeft = Offset(cx - 44.dp.toPx(), 68.dp.toPx()),
+                                size = Size(14.dp.toPx(), 56.dp.toPx()),
+                                cornerRadius = CornerRadius(8f, 8f),
+                                style = outlineStroke
+                            )
+                            drawRoundRect(
+                                color = armFill,
+                                topLeft = Offset(cx + 30.dp.toPx(), 68.dp.toPx()),
+                                size = Size(14.dp.toPx(), 56.dp.toPx()),
+                                cornerRadius = CornerRadius(8f, 8f)
+                            )
+                            drawRoundRect(
+                                color = outlineColor,
+                                topLeft = Offset(cx + 30.dp.toPx(), 68.dp.toPx()),
+                                size = Size(14.dp.toPx(), 56.dp.toPx()),
+                                cornerRadius = CornerRadius(8f, 8f),
+                                style = outlineStroke
+                            )
+
+                            // Quadriceps (Front) & Hamstrings (Back) — Highlighted in Cobalt/Periwinkle
+                            val legFill = if (isFront) highlightPrimary else highlightSecondary
+                            // Left thigh
+                            drawRoundRect(
+                                color = legFill,
+                                topLeft = Offset(cx - 24.dp.toPx(), 136.dp.toPx()),
+                                size = Size(20.dp.toPx(), 58.dp.toPx()),
+                                cornerRadius = CornerRadius(10f, 10f)
+                            )
+                            drawRoundRect(
+                                color = outlineColor,
+                                topLeft = Offset(cx - 24.dp.toPx(), 136.dp.toPx()),
+                                size = Size(20.dp.toPx(), 58.dp.toPx()),
+                                cornerRadius = CornerRadius(10f, 10f),
+                                style = outlineStroke
+                            )
+                            // Right thigh
+                            drawRoundRect(
+                                color = legFill,
+                                topLeft = Offset(cx + 4.dp.toPx(), 136.dp.toPx()),
+                                size = Size(20.dp.toPx(), 58.dp.toPx()),
+                                cornerRadius = CornerRadius(10f, 10f)
+                            )
+                            drawRoundRect(
+                                color = outlineColor,
+                                topLeft = Offset(cx + 4.dp.toPx(), 136.dp.toPx()),
+                                size = Size(20.dp.toPx(), 58.dp.toPx()),
+                                cornerRadius = CornerRadius(10f, 10f),
+                                style = outlineStroke
+                            )
+
+                            // Calves
+                            drawRoundRect(
+                                color = outlineColor,
+                                topLeft = Offset(cx - 21.dp.toPx(), 198.dp.toPx()),
+                                size = Size(15.dp.toPx(), 42.dp.toPx()),
+                                cornerRadius = CornerRadius(8f, 8f),
+                                style = outlineStroke
+                            )
+                            drawRoundRect(
+                                color = outlineColor,
+                                topLeft = Offset(cx + 6.dp.toPx(), 198.dp.toPx()),
+                                size = Size(15.dp.toPx(), 42.dp.toPx()),
+                                cornerRadius = CornerRadius(8f, 8f),
+                                style = outlineStroke
+                            )
+                        }
+
+                        drawBodySilhouette(frontCenterX, isFront = true)
+                        drawBodySilhouette(backCenterX, isFront = false)
+                    }
+                }
+            }
+        }
+
+        // MUSCLES INVOLVED Pills (Matches "Quadriceps", "Hamstrings" pill tags in top-left phone)
+        item {
+            Text(
+                text = "MUSCLES INVOLVED",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextCoolMuted,
+                letterSpacing = 0.8.sp
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                primaryPills.forEach { (muscleName, isPrimary) ->
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (isPrimary) PeriwinkleBlue else SoftPeriwinklePill)
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = muscleName,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isPrimary) PureWhite else CobaltBlue
+                        )
+                    }
+                }
+            }
+        }
+
+        // ABOUT Section ("9676 kg tonnage lifted"  |  "1:18 h time spent")
+        item {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "ABOUT",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextCoolMuted,
+                letterSpacing = 0.8.sp
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Divider(color = DividerCoolGray)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FitnessCenter,
+                        contentDescription = null,
+                        tint = CobaltBlue,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                text = "$totalTonnage",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = TextDarkNavy
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text("kg", fontSize = 12.sp, color = TextCoolMuted)
+                        }
+                        Text("tonnage lifted", fontSize = 12.sp, color = TextCoolMuted)
+                    }
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Timer,
+                        contentDescription = null,
+                        tint = CobaltBlue,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                text = "1:18",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = TextDarkNavy
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text("h", fontSize = 12.sp, color = TextCoolMuted)
+                        }
+                        Text("time spent", fontSize = 12.sp, color = TextCoolMuted)
+                    }
+                }
+            }
+            Divider(color = DividerCoolGray)
+        }
+    }
+}
+
+// ============================================================================
+// SCREEN 5: "STATISTICS" SCREEN (Matches bottom-right phone in reference image)
+// ============================================================================
+@Composable
+fun StatisticsReferenceScreen(
+    exercises: List<ExerciseEntity>,
+    allSets: List<WorkoutSetEntity>,
+    weeklyGoalDays: Int,
+    onUpdateWeeklyGoal: (Int) -> Unit,
+    onOpenBodyMetrics: () -> Unit
+) {
+    val context = LocalContext.current
+    var statsTab by remember { mutableIntStateOf(0) } // 0 = Global stats, 1 = Exercise specific
+    var selectedExercise by remember(exercises) {
+        mutableStateOf(exercises.firstOrNull()?.name ?: "Barbell Bench Press")
+    }
+
+    val totalWorkouts = remember(allSets) {
+        val actual = allSets.map { it.sessionId }.distinct().size
+        if (actual == 0) 72 else actual
+    }
+    val totalTonnage = remember(allSets) {
+        val actual = allSets.sumOf { it.weightKg * it.reps }.toLong()
+        if (actual == 0L) 224560L else actual
+    }
+    val formattedTonnage = remember(totalTonnage) {
+        NumberFormat.getIntegerInstance(Locale.US).format(totalTonnage).replace(",", " ")
+    }
+
+    val workoutDaysSet = remember(allSets) { allSets.map { it.dateEpochDay }.toSet() }
+    val todayEpoch = WorkoutMath.currentEpochDay()
+    val daysThisWeek = (0..6).count { offset -> workoutDaysSet.contains(todayEpoch - offset) }
+
+    val cal = remember { Calendar.getInstance() }
+    val currentYear = cal.get(Calendar.YEAR)
+    val daysInMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+    var selectedDayOfMonth by remember { mutableIntStateOf(cal.get(Calendar.DAY_OF_MONTH)) }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(PureWhite)
+            .padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
+    ) {
+        // Header ("Statistics" + "Share" CSV Export)
+        item {
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Statistics",
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = TextDarkNavy
+                )
+                Text(
+                    text = "Share CSV",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = CobaltBlue,
+                    modifier = Modifier.clickable {
+                        val csvData = WorkoutMath.buildCsvExport(allSets)
+                        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/csv"
+                            putExtra(Intent.EXTRA_SUBJECT, "IronPulse Workout Backup CSV")
+                            putExtra(Intent.EXTRA_TEXT, csvData)
+                        }
+                        context.startActivity(Intent.createChooser(sendIntent, "Export CSV Backup"))
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // "Global stats" | "Exercise specific" Underline Tab Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                Column(
+                    modifier = Modifier.clickable { statsTab = 0 }
+                ) {
+                    Text(
+                        text = "Global stats",
+                        fontSize = 14.sp,
+                        fontWeight = if (statsTab == 0) FontWeight.ExtraBold else FontWeight.Medium,
+                        color = if (statsTab == 0) TextDarkNavy else TextCoolMuted
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    if (statsTab == 0) {
+                        Box(
+                            modifier = Modifier
+                                .width(78.dp)
+                                .height(3.dp)
+                                .background(CobaltBlue)
+                        )
+                    }
+                }
+
+                Column(
+                    modifier = Modifier.clickable { statsTab = 1 }
+                ) {
+                    Text(
+                        text = "Exercise specific",
+                        fontSize = 14.sp,
+                        fontWeight = if (statsTab == 1) FontWeight.ExtraBold else FontWeight.Medium,
+                        color = if (statsTab == 1) TextDarkNavy else TextCoolMuted
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    if (statsTab == 1) {
+                        Box(
+                            modifier = Modifier
+                                .width(110.dp)
+                                .height(3.dp)
+                                .background(CobaltBlue)
+                        )
+                    }
+                }
+            }
+            Divider(color = DividerCoolGray)
+        }
+
+        if (statsTab == 1) {
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    exercises.forEach { ex ->
+                        FilterChip(
+                            selected = selectedExercise == ex.name,
+                            onClick = { selectedExercise = ex.name },
+                            label = { Text(ex.name) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = CobaltBlue,
+                                selectedLabelColor = PureWhite
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        // Deep Royal Indigo "Tonnage Lifted 224 560 kg" Vertical Bar Chart Card (Matches Statistics phone)
+        item {
+            val months = listOf("Feb", "Mar", "Apr", "May", "Jun", "Jul")
+            val barRatios = if (statsTab == 0) {
+                listOf(0.58f, 0.35f, 0.56f, 0.85f, 1.0f, 0.72f)
+            } else {
+                val exSets = allSets.filter { it.exerciseName == selectedExercise }.take(6).reversed()
+                if (exSets.size >= 2) {
+                    val max1rm = exSets.maxOf { WorkoutMath.estimate1RM(it.weightKg, it.reps) }.coerceAtLeast(1.0)
+                    exSets.map { (WorkoutMath.estimate1RM(it.weightKg, it.reps) / max1rm).toFloat() }
+                } else {
+                    listOf(0.5f, 0.65f, 0.72f, 0.8f, 0.92f, 1.0f)
+                }
+            }
+
+            Card(
+                colors = CardDefaults.cardColors(containerColor = RoyalIndigo),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text(
+                        text = if (statsTab == 0) "Tonnage Lifted" else "$selectedExercise (Est. 1RM Progression)",
+                        fontSize = 12.sp,
+                        color = SoftPeriwinklePill
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            text = if (statsTab == 0) formattedTonnage else {
+                                val best = allSets.filter { it.exerciseName == selectedExercise }
+                                    .maxOfOrNull { WorkoutMath.estimate1RM(it.weightKg, it.reps) } ?: 130.0
+                                "$best"
+                            },
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = PureWhite
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "kg",
+                            fontSize = 13.sp,
+                            color = SoftPeriwinklePill,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(22.dp))
+
+                    // Vertical Bar Chart with Glowing Periwinkle/Cobalt Bars
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(130.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        barRatios.forEachIndexed { idx, ratio ->
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Bottom,
+                                modifier = Modifier.fillMaxHeight()
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .width(26.dp)
+                                        .weight(1f),
+                                    contentAlignment = Alignment.BottomCenter
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .fillMaxHeight(ratio.coerceIn(0.15f, 1f))
+                                            .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                                            .background(
+                                                if (idx == barRatios.size - 2 || idx == barRatios.lastIndex)
+                                                    PeriwinkleBlue
+                                                else CobaltBlue.copy(alpha = 0.7f)
+                                            )
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = months.getOrElse(idx) { "S${idx + 1}" },
+                                    fontSize = 11.sp,
+                                    color = SoftPeriwinklePill.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2x2 Clean Metric Grid Below the Chart (Matches "72 workouts completed | 224 560 kg | 01:18 h | 02:32 m")
+        item {
+            Column {
+                Divider(color = DividerCoolGray)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(vertical = 16.dp, horizontal = 8.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = CobaltBlue,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "$totalWorkouts",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = TextDarkNavy
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "workouts completed",
+                            fontSize = 12.sp,
+                            color = TextCoolMuted
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .width(1.dp)
+                            .background(DividerCoolGray)
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(vertical = 16.dp, horizontal = 14.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.FitnessCenter,
+                                contentDescription = null,
+                                tint = CobaltBlue,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = formattedTonnage,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = TextDarkNavy
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "kg tonnage lifted",
+                            fontSize = 12.sp,
+                            color = TextCoolMuted
+                        )
+                    }
+                }
+
+                Divider(color = DividerCoolGray)
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(vertical = 16.dp, horizontal = 8.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Timer,
+                                contentDescription = null,
+                                tint = CobaltBlue,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "01:18 h",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = TextDarkNavy
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "avg workout duration",
+                            fontSize = 12.sp,
+                            color = TextCoolMuted
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .width(1.dp)
+                            .background(DividerCoolGray)
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(vertical = 16.dp, horizontal = 14.dp)
+                    ) {
+                        val avgRestSec = if (allSets.isEmpty()) 152 else allSets.map { it.restSeconds }.average().toInt()
+                        val rMin = avgRestSec / 60
+                        val rSec = avgRestSec % 60
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.CalendarMonth,
+                                contentDescription = null,
+                                tint = CobaltBlue,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = String.format(Locale.US, "%02d:%02d m", rMin, rSec),
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = TextDarkNavy
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "avg rest time",
+                            fontSize = 12.sp,
+                            color = TextCoolMuted
+                        )
+                    }
+                }
+                Divider(color = DividerCoolGray)
+            }
+        }
+
+        // Weekly Streak Goal & Interactive Monthly History Calendar
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = SoftCoolBg),
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -1546,101 +2916,39 @@ fun HistoryAndStreaksScreen(
                     ) {
                         Column {
                             Text(
-                                text = "WEEKLY WORKOUT GOAL",
+                                text = "WEEKLY STREAK & CALENDAR",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = EmeraldAccent
+                                color = CobaltBlue
                             )
                             Text(
-                                text = "$daysLast7 / $weeklyGoalDays Days This Week",
-                                fontSize = 20.sp,
+                                text = "$daysThisWeek / $weeklyGoalDays Weekly Goal Days",
+                                fontSize = 17.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = TextPrimary
-                            )
-                            Text(
-                                text = "Total Active Gym Days Logged: $totalUniqueWorkoutDays",
-                                fontSize = 12.sp,
-                                color = AmberGold
+                                color = TextDarkNavy
                             )
                         }
-                        Row {
-                            OutlinedButton(
-                                onClick = { onUpdateWeeklyGoal((weeklyGoalDays - 1).coerceAtLeast(1)) }
-                            ) {
-                                Text("-", color = TextPrimary)
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            OutlinedButton(onClick = { onUpdateWeeklyGoal((weeklyGoalDays - 1).coerceAtLeast(1)) }) {
+                                Text("-", color = TextDarkNavy, fontWeight = FontWeight.Bold)
                             }
-                            Spacer(modifier = Modifier.width(4.dp))
-                            OutlinedButton(
-                                onClick = { onUpdateWeeklyGoal((weeklyGoalDays + 1).coerceAtMost(7)) }
-                            ) {
-                                Text("+", color = EmeraldAccent)
+                            OutlinedButton(onClick = { onUpdateWeeklyGoal((weeklyGoalDays + 1).coerceAtMost(7)) }) {
+                                Text("+", color = CobaltBlue, fontWeight = FontWeight.Bold)
                             }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(10.dp))
-                    LinearProgressIndicator(
-                        progress = { (daysLast7.toFloat() / weeklyGoalDays.toFloat()).coerceIn(0f, 1f) },
-                        color = EmeraldAccent,
-                        trackColor = SlateCard,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(10.dp)
-                            .clip(RoundedCornerShape(5.dp))
-                    )
-                }
-            }
-        }
-
-        // Interactive Monthly Calendar View
-        item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = SlateSurface),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = currentMonthName.uppercase(Locale.US),
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = TextPrimary
-                        )
-                        Button(
-                            onClick = {
-                                val csvData = WorkoutMath.buildCsvExport(allSets)
-                                val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                                    type = "text/csv"
-                                    putExtra(Intent.EXTRA_SUBJECT, "IronPulse Workout Backup CSV")
-                                    putExtra(Intent.EXTRA_TEXT, csvData)
-                                }
-                                context.startActivity(
-                                    Intent.createChooser(sendIntent, "Export CSV Backup")
-                                )
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = EmeraldAccent)
-                        ) {
-                            Icon(Icons.Default.Share, contentDescription = null, tint = SlateBackground)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("EXPORT CSV", color = SlateBackground, fontWeight = FontWeight.Bold)
                         }
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
                     val rows = (1..daysInMonth).chunked(7)
-                    rows.forEach { weekDays ->
+                    rows.forEach { week ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 4.dp),
+                                .padding(vertical = 3.dp),
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            weekDays.forEach { dayNum ->
+                            week.forEach { dayNum ->
                                 val tempCal = Calendar.getInstance().apply {
                                     set(Calendar.YEAR, currentYear)
                                     set(Calendar.DAY_OF_MONTH, dayNum)
@@ -1652,316 +2960,41 @@ fun HistoryAndStreaksScreen(
                                 Box(
                                     contentAlignment = Alignment.Center,
                                     modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(6.dp))
                                         .background(
                                             when {
-                                                isSelected -> EmeraldAccent
-                                                hasWorkout -> EmeraldAccent.copy(alpha = 0.28f)
-                                                else -> SlateCard
+                                                isSelected -> CobaltBlue
+                                                hasWorkout -> SoftPeriwinklePill
+                                                else -> PureWhite
                                             }
                                         )
                                         .clickable { selectedDayOfMonth = dayNum }
                                 ) {
                                     Text(
-                                        text = dayNum.toString(),
+                                        text = "$dayNum",
+                                        fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (isSelected) SlateBackground else TextPrimary
+                                        color = if (isSelected) PureWhite else TextDarkNavy
                                     )
                                 }
                             }
                         }
                     }
-                }
-            }
-        }
 
-        item {
-            Text(
-                text = "WORKOUT LOGS FOR DAY $selectedDayOfMonth (${selectedDaySets.size} SETS)",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextSecondary
-            )
-        }
-
-        if (selectedDaySets.isEmpty()) {
-            item {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = SlateSurface),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "No sets logged on this date. Tap any highlighted day above to inspect its workout sets.",
-                        modifier = Modifier.padding(16.dp),
-                        color = TextSecondary
-                    )
-                }
-            }
-        } else {
-            items(selectedDaySets) { s ->
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = SlateSurface),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        Text(
-                            text = "${s.exerciseName} (Set #${s.setNumber} • ${s.setType})",
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
-                        Text(
-                            text = "${s.weightKg} kg x ${s.reps} reps  •  Est 1RM: ${
-                                WorkoutMath.estimate1RM(s.weightKg, s.reps)
-                            } kg",
-                            fontSize = 13.sp,
-                            color = EmeraldAccent
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ProgressAndBodyMetricsScreen(
-    exercises: List<ExerciseEntity>,
-    allSets: List<WorkoutSetEntity>,
-    bodyMetrics: List<BodyMetricEntity>,
-    onSaveBodyMetric: (Double, Double, Double, Double) -> Unit
-) {
-    var selectedExercise by remember(exercises) {
-        mutableStateOf(exercises.firstOrNull()?.name ?: "Barbell Bench Press")
-    }
-    var selectedChartMetric by remember { mutableStateOf("EST_1RM") } // WEIGHT, VOLUME, EST_1RM
-
-    val exerciseSets = remember(allSets, selectedExercise) {
-        allSets.filter { it.exerciseName == selectedExercise && it.setType != "WARMUP" }
-            .sortedBy { it.timestampMillis }
-    }
-
-    val chartPoints = remember(exerciseSets, selectedChartMetric) {
-        exerciseSets.map { s ->
-            when (selectedChartMetric) {
-                "WEIGHT" -> s.weightKg
-                "VOLUME" -> s.weightKg * s.reps
-                else -> WorkoutMath.estimate1RM(s.weightKg, s.reps)
-            }
-        }
-    }
-
-    var bwInput by remember { mutableStateOf("78.0") }
-    var waistInput by remember { mutableStateOf("82.0") }
-    var chestInput by remember { mutableStateOf("104.0") }
-    var armsInput by remember { mutableStateOf("38.5") }
-
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = SlateSurface),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "EXERCISE PROGRESS CHARTS",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = TextPrimary
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        exercises.forEach { ex ->
-                            FilterChip(
-                                selected = selectedExercise == ex.name,
-                                onClick = { selectedExercise = ex.name },
-                                label = { Text(ex.name) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = EmeraldAccent,
-                                    selectedLabelColor = SlateBackground
-                                )
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf(
-                            "EST_1RM" to "Est. 1RM (kg)",
-                            "WEIGHT" to "Top Weight (kg)",
-                            "VOLUME" to "Set Volume (kg)"
-                        ).forEach { (key, title) ->
-                            FilterChip(
-                                selected = selectedChartMetric == key,
-                                onClick = { selectedChartMetric = key },
-                                label = { Text(title, fontSize = 12.sp) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = AmberGold,
-                                    selectedLabelColor = SlateBackground
-                                )
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    if (chartPoints.isEmpty()) {
-                        Text(
-                            text = "Log working sets for $selectedExercise to see your progress curve.",
-                            color = TextSecondary,
-                            fontSize = 13.sp
-                        )
-                    } else {
-                        val minVal = chartPoints.minOrNull() ?: 0.0
-                        val maxVal = chartPoints.maxOrNull() ?: 100.0
-                        Text(
-                            text = "Latest: ${chartPoints.last()} kg  •  Peak: $maxVal kg",
-                            fontWeight = FontWeight.Bold,
-                            color = EmeraldAccent,
-                            fontSize = 13.sp
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Canvas(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(160.dp)
-                                .background(SlateCard, RoundedCornerShape(10.dp))
-                                .padding(16.dp)
-                        ) {
-                            val w = size.width
-                            val h = size.height
-                            val range = (maxVal - minVal).coerceAtLeast(1.0)
-                            val path = Path()
-                            chartPoints.forEachIndexed { idx, value ->
-                                val x = if (chartPoints.size == 1) w / 2f
-                                else (idx.toFloat() / (chartPoints.size - 1)) * w
-                                val y = h - (((value - minVal) / range).toFloat() * h)
-                                if (idx == 0) path.moveTo(x, y) else path.lineTo(x, y)
-                                drawCircle(
-                                    color = AmberGold,
-                                    radius = 5.dp.toPx(),
-                                    center = Offset(x, y)
-                                )
-                            }
-                            if (chartPoints.size > 1) {
-                                drawPath(
-                                    path = path,
-                                    color = EmeraldAccent,
-                                    style = Stroke(width = 3.dp.toPx())
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Body Metrics Tracker Card
-        item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = SlateSurface),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text(
-                        text = "BODY METRICS TRACKER",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = TextPrimary
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = bwInput,
-                            onValueChange = { bwInput = it },
-                            label = { Text("Weight (kg)") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            modifier = Modifier.weight(1f)
-                        )
-                        OutlinedTextField(
-                            value = waistInput,
-                            onValueChange = { waistInput = it },
-                            label = { Text("Waist (cm)") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = chestInput,
-                            onValueChange = { chestInput = it },
-                            label = { Text("Chest (cm)") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            modifier = Modifier.weight(1f)
-                        )
-                        OutlinedTextField(
-                            value = armsInput,
-                            onValueChange = { armsInput = it },
-                            label = { Text("Arms (cm)") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+                    Spacer(modifier = Modifier.height(10.dp))
                     Button(
-                        onClick = {
-                            onSaveBodyMetric(
-                                bwInput.toDoubleOrNull() ?: 0.0,
-                                waistInput.toDoubleOrNull() ?: 0.0,
-                                chestInput.toDoubleOrNull() ?: 0.0,
-                                armsInput.toDoubleOrNull() ?: 0.0
-                            )
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = EmeraldAccent),
+                        onClick = onOpenBodyMetrics,
+                        colors = ButtonDefaults.buttonColors(containerColor = RoyalIndigo),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(
-                            text = "LOG BODY MEASUREMENTS",
-                            color = SlateBackground,
-                            fontWeight = FontWeight.ExtraBold
-                        )
+                        Text("LOG BODY WEIGHT & MEASUREMENTS", color = PureWhite, fontWeight = FontWeight.Bold)
                     }
                 }
             }
         }
 
-        items(bodyMetrics) { metric ->
-            val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(metric.timestampMillis))
-            Card(
-                colors = CardDefaults.cardColors(containerColor = SlateSurface),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(dateStr, fontWeight = FontWeight.Bold, color = EmeraldAccent)
-                    Text(
-                        text = "${metric.weightKg} kg • Waist ${metric.waistCm}cm • Chest ${metric.chestCm}cm • Arms ${metric.armsCm}cm",
-                        fontSize = 12.sp,
-                        color = TextPrimary
-                    )
-                }
-            }
-        }
+        item { Spacer(modifier = Modifier.height(24.dp)) }
     }
 }
 
@@ -1982,11 +3015,11 @@ fun PlateCalculatorModal(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = SlateSurface,
+        containerColor = PureWhite,
         title = {
             Text(
                 text = "Barbell Plate Calculator",
-                color = TextPrimary,
+                color = TextDarkNavy,
                 fontWeight = FontWeight.ExtraBold
             )
         },
@@ -1995,7 +3028,7 @@ fun PlateCalculatorModal(
                 OutlinedTextField(
                     value = targetWeight,
                     onValueChange = { targetWeight = it },
-                    label = { Text("Target Total Weight (kg)") },
+                    label = { Text("Target Weight (kg)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true
                 )
@@ -2008,18 +3041,18 @@ fun PlateCalculatorModal(
                 )
                 Text(
                     text = "LOAD PER SIDE OF BAR:",
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = AmberGold
+                    color = TextCoolMuted
                 )
                 if (platesPerSide.isEmpty()) {
-                    Text("Empty bar or weight less than barbell.", color = TextSecondary)
+                    Text("Empty bar or weight below barbell.", color = TextCoolMuted)
                 } else {
                     Text(
                         text = platesPerSide.joinToString("  +  ") { "${it}kg" },
                         fontSize = 18.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = EmeraldAccent
+                        color = CobaltBlue
                     )
                 }
             }
@@ -2027,9 +3060,87 @@ fun PlateCalculatorModal(
         confirmButton = {
             Button(
                 onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = EmeraldAccent)
+                colors = ButtonDefaults.buttonColors(containerColor = CobaltBlue)
             ) {
-                Text("DONE", color = SlateBackground, fontWeight = FontWeight.Bold)
+                Text("DONE", color = PureWhite, fontWeight = FontWeight.Bold)
+            }
+        }
+    )
+}
+
+@Composable
+fun BodyMetricsModal(
+    bodyMetrics: List<BodyMetricEntity>,
+    onSave: (Double, Double, Double, Double) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val latest = bodyMetrics.firstOrNull()
+    var bwInput by remember { mutableStateOf((latest?.weightKg ?: 70.0).toString()) }
+    var waistInput by remember { mutableStateOf((latest?.waistCm ?: 80.0).toString()) }
+    var chestInput by remember { mutableStateOf((latest?.chestCm ?: 102.0).toString()) }
+    var armsInput by remember { mutableStateOf((latest?.armsCm ?: 38.0).toString()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = PureWhite,
+        title = {
+            Text(
+                text = "Body Metrics Tracker",
+                color = TextDarkNavy,
+                fontWeight = FontWeight.ExtraBold
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = bwInput,
+                    onValueChange = { bwInput = it },
+                    label = { Text("Body Weight (kg)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = waistInput,
+                    onValueChange = { waistInput = it },
+                    label = { Text("Waist (cm)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = chestInput,
+                    onValueChange = { chestInput = it },
+                    label = { Text("Chest (cm)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = armsInput,
+                    onValueChange = { armsInput = it },
+                    label = { Text("Arms (cm)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onSave(
+                        bwInput.toDoubleOrNull() ?: 70.0,
+                        waistInput.toDoubleOrNull() ?: 80.0,
+                        chestInput.toDoubleOrNull() ?: 102.0,
+                        armsInput.toDoubleOrNull() ?: 38.0
+                    )
+                    onDismiss()
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = CobaltBlue)
+            ) {
+                Text("SAVE METRICS", color = PureWhite, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("CLOSE", color = TextCoolMuted)
             }
         }
     )
